@@ -5,4 +5,9 @@ import { PG_POOL } from '../database/database.module';
 @Injectable()
 export class UsersService {
   constructor(@Inject(PG_POOL) private readonly pool: Pool) {}
+
+  async getAllUsers() {
+    const result = await this.pool.query('SELECT * FROM User');
+    return result.rows;
+  }
 }
