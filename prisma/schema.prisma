@@ -1,11 +1,11 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
+  provider = "prisma-client"
+
+  output = "../src/generated/prisma"
+
   moduleFormat = "cjs"
 }
 
@@ -14,18 +14,249 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  email    String  @unique
-  password String
-  name     String?
-  posts    Post[]
+  id        Int      @id @default(autoincrement())
+  email     String?  @unique
+  password  String?
+  role      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  info                  UserInfo?
+  boosts                UserBoost[]
+  notifications         UserNotification[]
+  skills                UserSkill?
+  ratings               Rating[]
+  subscriptions         UserSubscription[]
+  challengeParticipants ChallengeParticipant[]
+  challengeDayResults   ChallengeDayResult[]
+
+  @@map("users")
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+model UserInfo {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique @map("user_id")
+  balance     Int     @default(0)
+  phoneNumber String? @map("phone_number")
+  score       Int     @default(0)
+  activity    Int     @default(0)
+  wonCount    Int     @default(0) @map("won_count")
+  name        String?
+  age         Int?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_info")
+}
+
+model Boost {
+  id    Int     @id @default(autoincrement())
+  title String?
+
+  userBoosts UserBoost[]
+
+  @@map("boosts")
+}
+
+model UserBoost {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  boostId     Int       @map("boost_id")
+  count       Int       @default(1)
+  activatedAt DateTime? @map("activated_at")
+  lastUsage   DateTime? @map("last_usage")
+
+  user  User  @relation(fields: [userId], references: [id])
+  boost Boost @relation(fields: [boostId], references: [id])
+
+  @@map("user_boosts")
+}
+
+model Notification {
+  id          Int     @id @default(autoincrement())
+  title       String?
+  description String?
+
+  userNotifications UserNotification[]
+
+  @@map("notifications")
+}
+
+model UserNotification {
+  id             Int @id @default(autoincrement())
+  userId         Int @map("user_id")
+  notificationId Int @map("notification_id")
+
+  user         User         @relation(fields: [userId], references: [id])
+  notification Notification @relation(fields: [notificationId], references: [id])
+
+  @@map("user_notifications")
+}
+
+model UserSkill {
+  id            Int @id @default(autoincrement())
+  userId        Int @unique @map("user_id")
+  thinkingSpeed Int @default(0) @map("thinking_speed")
+  attention     Int @default(0) @map("attantion")
+  concentration Int @default(0) @map("consentrance")
+  logic         Int @default(0)
+  memory        Int @default(0)
+  iq            Int @default(0)
+  iqDifference  Int @default(0) @map("iq_differance")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("user_skils")
+}
+
+model Game {
+  id    Int     @id @default(autoincrement())
+  title String?
+
+  ratings           Rating[]
+  testPlanGames     TestPlanGame[]
+  challengeDayGames ChallengeDayGame[]
+
+  @@map("games")
+}
+
+model Rating {
+  id     Int  @id @default(autoincrement())
+  gameId Int  @map("game_id")
+  userId Int  @map("user_id")
+  score  Int?
+
+  game Game @relation(fields: [gameId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("ratings")
+}
+
+model Reaclam {
+  id          Int     @id @default(autoincrement())
+  title       String?
+  description String?
+  link        String?
+
+  @@map("reaclams")
+}
+
+// ===== TEST PLANS =====
+
+model TestPlan {
+  id           Int      @id @default(autoincrement())
+  type         String // 'daily | weekly | monthly'
+  title        String
+  description  String?
+  price        Int // in cents
+  testCount    Int      @map("test_count")
+  durationDays Int      @map("duration_days")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  games         TestPlanGame[]
+  subscriptions UserSubscription[]
+
+  @@map("test_plans")
+}
+
+model TestPlanGame {
+  id         Int @id @default(autoincrement())
+  testPlanId Int @map("test_plan_id")
+  gameId     Int @map("game_id")
+
+  testPlan TestPlan @relation(fields: [testPlanId], references: [id])
+  game     Game     @relation(fields: [gameId], references: [id])
+
+  @@map("test_plan_games")
+}
+
+model UserSubscription {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  testPlanId Int      @map("test_plan_id")
+  startsAt   DateTime @map("starts_at")
+  expiresAt  DateTime @map("expires_at")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id])
+  testPlan TestPlan @relation(fields: [testPlanId], references: [id])
+
+  @@map("user_subscriptions")
+}
+
+// ===== CHALLENGES =====
+
+model Challenge {
+  id          Int      @id @default(autoincrement())
+  type        String // 'daily | weekly | monthly'
+  title       String
+  description String?
+  price       Int // in cents
+  prizePool   Int?     @map("prize_pool") // in cents
+  startsAt    DateTime @map("starts_at")
+  endsAt      DateTime @map("ends_at")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  days         ChallengeDay[]
+  participants ChallengeParticipant[]
+
+  @@map("challenges")
+}
+
+model ChallengeDay {
+  id              Int     @id @default(autoincrement())
+  challengeId     Int     @map("challenge_id")
+  dayNumber       Int     @map("day_number")
+  title           String
+  description     String?
+  taskType        String  @map("task_type") // 'quiz | review_mistakes | mini_test | theory | games'
+  questionCount   Int?    @map("question_count")
+  durationMinutes Int?    @map("duration_minutes")
+
+  challenge Challenge            @relation(fields: [challengeId], references: [id])
+  games     ChallengeDayGame[]
+  results   ChallengeDayResult[]
+
+  @@map("challenge_days")
+}
+
+model ChallengeDayGame {
+  id             Int @id @default(autoincrement())
+  challengeDayId Int @map("challenge_day_id")
+  gameId         Int @map("game_id")
+
+  challengeDay ChallengeDay @relation(fields: [challengeDayId], references: [id])
+  game         Game         @relation(fields: [gameId], references: [id])
+
+  @@map("challenge_day_games")
+}
+
+model ChallengeParticipant {
+  id          Int      @id @default(autoincrement())
+  challengeId Int      @map("challenge_id")
+  userId      Int      @map("user_id")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([challengeId, userId])
+  @@map("challenge_participants")
+}
+
+model ChallengeDayResult {
+  id             Int       @id @default(autoincrement())
+  challengeDayId Int       @map("challenge_day_id")
+  userId         Int       @map("user_id")
+  status         String // 'completed | in_progress | locked'
+  score          Int       @default(0)
+  completedAt    DateTime? @map("completed_at")
+
+  challengeDay ChallengeDay @relation(fields: [challengeDayId], references: [id])
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@unique([challengeDayId, userId])
+  @@map("challenge_day_results")
 }

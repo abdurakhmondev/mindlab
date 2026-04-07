@@ -19,24 +19,31 @@ export class AuthService {
       data: {
         email,
         password: hashedPassword,
-        name,
+        ...(name ? { info: { create: { name } } } : {}),
       },
+      include: { info: true },
     });
 
     const { password: _, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+    return {
+      ...userWithoutPassword,
+      name: user.info?.name,
+    };
   }
 
   async login(email: string, password: string) {
     const user = await this.prisma.user.findUnique({
       where: { email },
+      include: { info: true },
     });
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = user.password
+      ? await bcrypt.compare(password, user.password)
+      : false;
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
@@ -53,7 +60,8 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.info?.name,
+        info: user.info,
       },
     };
   }
@@ -64,7 +72,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        name: true,
+        info: true,
       },
     });
 
@@ -72,6 +80,11 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    return user;
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.info?.name,
+      info: user.info,
+    };
   }
 }

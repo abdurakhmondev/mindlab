@@ -4,6 +4,7 @@ import { UsersModule } from './users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './redis/redis.module';
+import { GamesModule } from './games/games.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { RedisModule } from './redis/redis.module';
     RedisModule,
     AuthModule,
     UsersModule,
+    GamesModule,
   ],
   controllers: [],
   providers: [],

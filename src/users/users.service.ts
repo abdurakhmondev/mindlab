@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { UpdateUserInfoDto } from './dto/update-user-info.dto';
 
 @Injectable()
 export class UsersService {
@@ -14,14 +15,16 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        name: true,
+        info: { select: { name: true } },
       },
     });
 
     // Add online status to each user
     const usersWithStatus = await Promise.all(
       users.map(async (user) => ({
-        ...user,
+        id: user.id,
+        email: user.email,
+        name: user.info?.name,
         isOnline: await this.redis.isUserOnline(user.id),
       })),
     );
@@ -45,12 +48,14 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        name: true,
+        info: { select: { name: true } },
       },
     });
 
     return users.map((user) => ({
-      ...user,
+      id: user.id,
+      email: user.email,
+      name: user.info?.name,
       isOnline: true,
     }));
   }
@@ -61,7 +66,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
-        name: true,
+        info: { select: { name: true } },
       },
     });
 
@@ -70,8 +75,34 @@ export class UsersService {
     }
 
     return {
-      ...user,
+      id: user.id,
+      email: user.email,
+      name: user.info?.name,
       isOnline: await this.redis.isUserOnline(user.id),
     };
+  }
+
+  async getUserInfo(userId: number) {
+    const userInfo = await this.prisma.userInfo.findUnique({
+      where: { userId },
+    });
+
+    if (!userInfo) {
+      throw new NotFoundException(`UserInfo for user ${userId} not found`);
+    }
+
+    return userInfo;
+  }
+
+  async updateUserInfo(userId: number, updateDto: UpdateUserInfoDto) {
+    // Upsert ensures that if the user does not have a UserInfo record yet, it is created.
+    return this.prisma.userInfo.upsert({
+      where: { userId },
+      update: updateDto,
+      create: {
+        userId,
+        ...updateDto,
+      },
+    });
   }
 }
