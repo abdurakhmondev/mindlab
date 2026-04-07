@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
+import { UpdateUserSkillDto } from './dto/update-user-skill.dto';
 
 @Injectable()
 export class UsersService {
@@ -97,6 +98,29 @@ export class UsersService {
   async updateUserInfo(userId: number, updateDto: UpdateUserInfoDto) {
     // Upsert ensures that if the user does not have a UserInfo record yet, it is created.
     return this.prisma.userInfo.upsert({
+      where: { userId },
+      update: updateDto,
+      create: {
+        userId,
+        ...updateDto,
+      },
+    });
+  }
+
+  async getUserSkills(userId: number) {
+    const userSkills = await this.prisma.userSkill.findUnique({
+      where: { userId },
+    });
+
+    if (!userSkills) {
+      throw new NotFoundException(`UserSkill for user ${userId} not found`);
+    }
+
+    return userSkills;
+  }
+
+  async updateUserSkills(userId: number, updateDto: UpdateUserSkillDto) {
+    return this.prisma.userSkill.upsert({
       where: { userId },
       update: updateDto,
       create: {

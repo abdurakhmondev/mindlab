@@ -108,10 +108,29 @@ model UserSkill {
   @@map("user_skils")
 }
 
-model Game {
-  id    Int     @id @default(autoincrement())
-  title String?
+enum GameType {
+  MATH
+  GEOGRAPHY
+  PAZL
+  LANGUAGE
+  GALAXY
+  ATTENTION
+  TIMING
+  SPEED
+  REACTION
+  CONCENTRATION
+  RACING
+  MEMORY
 
+  @@map("game_type")
+}
+
+model Game {
+  id                Int                @id @default(autoincrement())
+  title             String             @map("title")
+  subtitle          String             @map("subtitle")
+  imageUrl          String             @map("image_url")
+  type              GameType           @map("type")
   ratings           Rating[]
   testPlanGames     TestPlanGame[]
   challengeDayGames ChallengeDayGame[]

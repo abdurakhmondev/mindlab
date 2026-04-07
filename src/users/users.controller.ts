@@ -17,6 +17,7 @@ import {
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UpdateUserInfoDto } from './dto/update-user-info.dto';
+import { UpdateUserSkillDto } from './dto/update-user-skill.dto';
 
 @ApiTags('users')
 @ApiBearerAuth()
@@ -71,5 +72,30 @@ export class UsersController {
     @Body() updateUserInfoDto: UpdateUserInfoDto,
   ) {
     return this.usersService.updateUserInfo(id, updateUserInfoDto);
+  }
+
+  @Get(':id/skills')
+  @ApiOperation({ summary: 'Get user skills details by user ID' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({ status: 200, description: 'Detailed user skills.' })
+  @ApiResponse({ status: 404, description: 'User skills not found.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async getUserSkills(@Param('id', ParseIntPipe) id: number) {
+    return this.usersService.getUserSkills(id);
+  }
+
+  @Patch(':id/skills')
+  @ApiOperation({ summary: 'Update user skills details by user ID' })
+  @ApiParam({ name: 'id', description: 'User ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'User skills updated successfully.',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  async updateUserSkills(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateUserSkillDto: UpdateUserSkillDto,
+  ) {
+    return this.usersService.updateUserSkills(id, updateUserSkillDto);
   }
 }
